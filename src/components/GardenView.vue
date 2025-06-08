@@ -270,7 +270,7 @@
 
 <script setup lang="ts">
 import draggable from 'vuedraggable'
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 
 // Task lifecycle stages - represents the journey from idea to completion
 const stages = ['Preserved', 'Planted', 'Growing', 'Harvested', 'Composted']
@@ -288,10 +288,17 @@ const suggestion = ref('') // Current task suggestion text
 
 // TypeScript interface for task objects
 interface Flower {
-  id: string
-  title: string
-  label: string
-  stage: string
+  id: string; // Unique identifier
+  title: string; // Task title
+  label?: string; // Category/label
+  stage: string; // Lifecycle stage
+  description?: string; // Optional description
+  startTime?: string; // Start time (ISO string)
+  endTime?: string; // End time (ISO string)
+  locationName?: string; // Location name
+  fullAddress?: string; // Full address
+  diaryEntry?: string; // Diary entry
+  moodRating?: number; // Mood rating
 }
 
 // Reference to the suggested task object for styling purposes
@@ -300,7 +307,7 @@ const suggestionFlower = ref<Flower | null>(null)
 // Main data store - all tasks/flowers in the garden
 const flowers = reactive([
   { id: '1', title: 'Write a poem', label: 'Chores', stage: 'Planted' },
-  { id: '2', title: 'Go to gym', label: 'Health', stage: 'Growing' },
+  /* { id: '2', title: 'Go to gym', label: 'Health', stage: 'Growing' },
   { id: '3', title: 'Game night', label: 'Friends', stage: 'Preserved' },
   { id: '4', title: 'Watch documentary', label: 'Learning', stage: 'Composted' },
   { id: '5', title: 'Go to Northpole', label: 'Fun', stage: 'Harvested' },
@@ -308,8 +315,67 @@ const flowers = reactive([
   { id: '7', title: 'Drink bubble tea', label: 'Friends', stage: 'Preserved' },
   { id: '8', title: 'Think about ideas', label: 'Miscellaneous', stage: 'Growing' },
   { id: '9', title: 'Buy milk', label: 'Chores', stage: 'Growing' },
-  { id: '10', title: 'Physiotherapy appointment', label: 'Chores', stage: 'Preserved' }
+  { id: '10', title: 'Physiotherapy appointment', label: 'Chores', stage: 'Preserved' } */
 ])
+
+const jwTToken = ref(localStorage.getItem('jwt')) // JWT token for authentication, if needed
+
+function fetchFlowers() {
+  const token = localStorage.getItem('jwt'); // Dynamically retrieve the token
+  while (!token) {
+    console.error('JWT token not found. Please log in.');
+    return;
+  }
+
+  fetch('http://localhost:8002/calendar/my-entries', {
+    headers: {
+      Authorization: `Bearer ${jwTToken.value}`
+    }
+  })
+  .then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch flowers. Please check your authentication.');
+      }
+      return response.json();
+    })
+  .then((data) => {
+      // Filter and transform the data
+      const filteredFlowers = data
+        .filter((entry: any) => entry.stage) // Only include entries where stage is not null
+        .map((entry: any) => ({
+          id: entry.id.toString(),
+          title: entry.title,
+          label: entry.labels?.[0] || 'Miscellaneous', // Use the first label or default to 'Miscellaneous'
+          stage: entry.stage,
+          description: entry.description,
+          startTime: entry.startTime,
+          endTime: entry.endTime,
+          locationName: entry.locationName,
+          fullAddress: entry.fullAddress,
+          diaryEntry: entry.diaryEntry,
+          moodRating: entry.moodRating,
+        }));
+
+      // Populate the flowers array
+      flowers.splice(0, flowers.length, ...filteredFlowers);
+      console.log('Fetched and populated flowers:', flowers);
+    })
+  .catch(error => {
+    console.error('Error fetching flowers:', error);
+  })
+}
+
+onMounted(() => {
+
+  const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
+if (token) {
+  localStorage.setItem('jwt', token);
+  jwTToken.value = token;
+}
+  // Try initial fetch
+  fetchFlowers();
+});
 
 /**
  * Filters tasks for a specific grid cell (category + stage combination)
