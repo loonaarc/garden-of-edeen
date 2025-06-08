@@ -429,11 +429,34 @@ function getFlowersForCell(label: string, stage: string) {
  */
 function handleDragChange(event: any, targetLabel: string, targetStage: string) {
   if (event.added) {
-    // Item was added to this cell - update its properties
-    const addedFlower = flowers.find(f => f.id === event.added.element.id)
+    // Find the flower that was moved
+    const addedFlower = flowers.find(f => f.id === event.added.element.id);
     if (addedFlower) {
-      addedFlower.label = targetLabel
-      addedFlower.stage = targetStage
+      // Update the flower's label and stage locally
+      addedFlower.label = targetLabel;
+      addedFlower.stage = targetStage;
+
+      // Send a PATCH request to update the flower in the backend
+      fetch(`http://localhost:8002/calendar/my-entries/${addedFlower.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${jwTToken.value}`, // Include JWT token for authentication
+        },
+        body: JSON.stringify({
+          labels: [targetLabel], // Send labels as an array
+          stage: targetStage,
+        }),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error('Failed to update flower stage and labels.');
+          }
+          console.log('Flower stage and labels updated successfully.');
+        })
+        .catch((error) => {
+          console.error('Error updating flower stage and labels:', error);
+        });
     }
   }
 }
@@ -452,7 +475,7 @@ function plantSeed() {
    const newFlower = {
     title: newSeedTitle.value.trim(),
     stage: 'Planted', // All new tasks start as planted
-    label: selectedLabel,
+    labels: [selectedLabel],
   };
 
   // Send POST request to backend
@@ -476,7 +499,7 @@ function plantSeed() {
         id: data.id.toString(), // Use the ID returned by the backend
         title: data.title,
         stage: data.stage,
-        label: data.label || 'Miscellaneous', // Default to 'Miscellaneous' if no label provided
+        label: data.labels?.[0] || 'Miscellaneous', // Default to 'Miscellaneous' if no label provided
         description: data.description || '',
         startTime: data.startTime || '',
         endTime: data.endTime || '',
@@ -602,9 +625,12 @@ function fetchLabels() {
         return label.name;
       });
 
-      // Ensure "Miscellaneous" is included and unique
-      const uniqueLabels = ['Miscellaneous', ...new Set(fetchedLabels)];
-      labels.splice(0, labels.length, ...uniqueLabels);
+      // Ensure "Miscellaneous" is included only once
+      if (!fetchedLabels.includes('Miscellaneous')) {
+        fetchedLabels.unshift('Miscellaneous');
+      }
+
+      labels.splice(0, labels.length, ...fetchedLabels);
 
       console.log('Fetched labels with colors:', labelColors.value);
     })
