@@ -10,7 +10,7 @@
     </header>
 
     <!-- Primary navigation/action bar for planting new seeds -->
-    <nav class="fixed top-4 left-4 z-40" role="banner">
+    <nav class="fixed top-4 left-4 z-40" role="navigation">
       <section class="bg-green-200/50 backdrop-blur rounded-2xl p-4 border-2 border-green-300 shadow-lg">
         <!-- Seed planting form -->
         <form @submit.prevent="plantSeed" class="flex gap-3 items-center">
@@ -82,7 +82,7 @@
             <!-- Decorative fence borders for visual garden effect -->
             <!-- Top fence - only shown on first row to avoid duplication -->
             <div v-if="labelIndex === 0" class="absolute -top-2 left-0 w-full h-4 bg-repeat-x z-20 mx-1"
-              style="background-image: url('/bg/fence-horizontal.png'); background-size: contain;" aria-hidden="true">
+              style="background-image: url('/bg/fence-horizontal.png'); background-size: contain; " aria-hidden="true">
             </div>
 
             <!-- Bottom fence - always present for consistent borders -->
@@ -104,7 +104,7 @@
             <article
               class="relative z-10 flex flex-wrap items-center justify-center gap-1 px-2 py-2 min-h-[4rem] w-full h-full">
 
-              <!-- Vue draggable component for task management -->
+              <!-- Vue draggable component for task management (Binds the draggable list to the result of the getFlowersForCell method)-->
               <draggable :list="getFlowersForCell(label, stage)" @change="handleDragChange($event, label, stage)"
                 group="flowers" item-key="id" class="flex flex-wrap items-center justify-center gap-1 w-full h-full"
                 :aria-label="`Draggable task list for ${label} - ${stage}`">
@@ -112,8 +112,7 @@
                 <!-- Individual task item template -->
                 <template #item="{ element: flower }">
                   <figure class="text-center flex-shrink-0" style="min-width: 60px; max-width: 80px"
-                   @mouseover="showTooltip($event, flower)"
-    @mouseleave="handleMouseLeave">
+                    @mouseover="showTooltip($event, flower)" @mouseleave="handleMouseLeave">
                     <!-- Task stage visual representation -->
                     <img :src="getFlowerImage(stage)" :alt="`${stage} stage flower`"
                       class="h-auto w-8 sm:w-10 md:w-11 object-contain mx-auto" />
@@ -139,18 +138,14 @@
 
       <!-- Tooltip for hovered flower/task -->
       <div v-if="hoveredFlower" class="absolute bg-white shadow-lg rounded-lg p-4 text-sm z-50"
-        :style="{ top: `${tooltipY}px`, left: `${tooltipX}px` }"
-  @mouseover="handleMouseEnter"
-  @mouseleave="handleMouseLeave">
+        :style="{ top: `${tooltipY}px`, left: `${tooltipX}px` }" @mouseover="handleMouseEnter"
+        @mouseleave="handleMouseLeave">
         <h3 class="font-bold">{{ hoveredFlower.title }}</h3>
 
         <!-- Editable input field for the title -->
-  <input 
-    v-model="hoveredFlowerTitle" 
-    type="text" 
-    class="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-    placeholder="Enter new title"
-  />
+        <input v-model="hoveredFlowerTitle" type="text"
+          class="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Enter new title" />
 
         <p><strong>Description:</strong> {{ hoveredFlower.description || 'No description' }}</p>
         <p><strong>Start:</strong> {{ hoveredFlower.startTime || 'N/A' }}</p>
@@ -159,21 +154,17 @@
 
 
         <!-- Save button -->
-  <button 
-    @click="saveFlowerTitle" 
-    class="mt-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full font-semibold shadow-lg transition"
-  >
-    Save
-  </button>
+        <button @click="saveFlowerTitle"
+          class="mt-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full font-semibold shadow-lg transition">
+          Save
+        </button>
 
         <!-- Edit button -->
-  <button 
-    @click="redirectToEditPage(hoveredFlower.id)" 
-    class="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full font-semibold shadow-lg transition"
-    :aria-label="`Edit ${hoveredFlower.title} in Calendiary`"
-  >
-    Edit in Calendiary
-  </button>
+        <button @click="redirectToEditPage(hoveredFlower.id)"
+          class="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full font-semibold shadow-lg transition"
+          :aria-label="`Edit ${hoveredFlower.title} in CalenDiary`">
+          Edit in Calendiary
+        </button>
       </div>
 
       <!-- Add new category section -->
@@ -269,59 +260,27 @@
         </form>
       </article>
     </dialog>
+
+    <dialog v-if="showLoginPrompt" class="fixed inset-0 bg-black/0 flex items-center justify-center z-50">
+  <article class="bg-white rounded-2xl p-6 max-w-md mx-4 text-center" role="dialog" aria-labelledby="login-title">
+    <header>
+      <h2 id="login-title" class="text-xl font-bold mb-4">Login Required</h2>
+    </header>
+    <p class="mb-4">Entrance to garden denied. Make sure you're logged in!</p>
+    <footer class="flex gap-3 justify-center">
+      <a href="http://localhost:8080/signin" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full transition">
+        Login to CalenDiary
+      </a>
+    </footer>
+  </article>
+</dialog>
+
   </main>
 </template>
 
 <script setup lang="ts">
 import draggable from 'vuedraggable'
 import { onMounted, reactive, ref } from 'vue'
-
-// Task lifecycle stages - represents the journey from idea to completion
-const stages = ['Preserved', 'Planted', 'Growing', 'Harvested', 'Composted']
-
-// Task categories/labels - different areas of life or types of tasks
-const labels = reactive<string[]>(['Miscelleanous']);
-
-// Form state management
-const newSeedTitle = ref('') // Title for new task/idea
-const newSeedLabel = ref('') // Selected category for new task
-const sproutLabel = ref('') // Filter for task suggestions
-const showAddLabelModal = ref(false) // Modal visibility state
-const newLabelName = ref('') // Name for new category
-const suggestion = ref('') // Current task suggestion text
-const hoveredFlower = ref<Flower | null>(null);
-const tooltipX = ref(0);
-const tooltipY = ref(0);
-const cardVisible = ref(false);
-const hoveredFlowerTitle = ref('');
-const labelColors = ref<Record<string, string>>({});
-
-let hideTimeout: ReturnType<typeof setTimeout>;
-
-function handleMouseLeave() {
-  hideTimeout = setTimeout(() => {
-    cardVisible.value = false;
-    hoveredFlower.value = null;
-  }, 200); // 200ms delay
-}
-
-function handleMouseEnter() {
-  clearTimeout(hideTimeout); // Cancel the hide timeout
-  cardVisible.value = true;
-}
-
-function showTooltip(event: MouseEvent, flower: Flower) {
-  hoveredFlower.value = flower;
-  hoveredFlowerTitle.value = flower.title; // Set the editable title
-
-  // Position the tooltip relative to the flower
-  const target = event.currentTarget as HTMLElement;
-  const rect = target.getBoundingClientRect();
-  tooltipX.value = rect.left + window.scrollX + rect.width / 2; // Center horizontally
-  tooltipY.value = rect.top + window.scrollY - 10; // Position slightly above
-}
-
-
 
 // TypeScript interface for task objects
 interface Flower {
@@ -341,8 +300,28 @@ interface Flower {
 interface Label {
   id: string;
   name: string;
-  color? : string;
+  color?: string;
 }
+
+// Task lifecycle stages - represents the journey from idea to completion
+const stages = ['Preserved', 'Planted', 'Growing', 'Harvested', 'Composted']
+
+// Task categories/labels - different areas of life or types of tasks
+const labels = reactive<string[]>(['Miscelleanous']);
+const labelColors = reactive<Record<string, string>>({});
+
+// Form state management
+const newSeedTitle = ref('') // Title for new task/idea
+const newSeedLabel = ref('') // Selected category for new task
+const sproutLabel = ref('') // Filter for task suggestions
+const showAddLabelModal = ref(false) // Modal visibility state
+const newLabelName = ref('') // Name for new category
+const suggestion = ref('') // Current task suggestion text
+const hoveredFlower = ref<Flower | null>(null);
+const tooltipX = ref(0);
+const tooltipY = ref(0);
+const cardVisible = ref(false);
+const hoveredFlowerTitle = ref('');
 
 // Reference to the suggested task object for styling purposes
 const suggestionFlower = ref<Flower | null>(null)
@@ -351,16 +330,64 @@ const suggestionFlower = ref<Flower | null>(null)
 const flowers = reactive<Flower[]>([]);
 
 const jwTToken = ref(localStorage.getItem('jwt')) // JWT token for authentication, if needed
+const showLoginPrompt = ref(false); // Controls the visibility of the login prompt
 
-function fetchFlowers() {
-  const token = localStorage.getItem('jwt'); // Dynamically retrieve the token
-  while (!token) {
-    console.error('JWT token not found. Please log in.');
-    return;
+//extracts return type from setTimeout function
+let hideTimeout: ReturnType<typeof setTimeout>;
+
+onMounted(() => {
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+  if (token) {
+    localStorage.setItem('jwt', token);
+    jwTToken.value = token;
+  } 
+  if (!jwTToken.value) {
+    // Show login prompt if JWT is missing
+    showLoginPrompt.value = true;
   }
+  // Fetch labels and flowers
+  fetchLabels();
+  fetchFlowers();
+});
 
+
+function handleMouseLeave() {
+  hideTimeout = setTimeout(() => {
+    cardVisible.value = false;
+    hoveredFlower.value = null;
+  }, 200); // 200ms delay
+}
+
+function handleMouseEnter() {
+  clearTimeout(hideTimeout); // Cancel the hide timeout
+  cardVisible.value = true;
+}
+
+function showTooltip(event: MouseEvent, flower: Flower) {
+  hoveredFlower.value = flower;
+  hoveredFlowerTitle.value = flower.title; // Set the editable title
+
+  // Position the tooltip relative to the flower
+  const target = event.currentTarget as HTMLElement;
+  const rect = target.getBoundingClientRect(); //element's position relative to the viewport
+  tooltipX.value = rect.left + window.scrollX + rect.width / 2; // Center horizontally
+  tooltipY.value = rect.top + window.scrollY - 10; // Position slightly above
+}
+
+/**
+ * Fetches the list of flowers from the data source or API.
+ * Typically used to populate the garden view with available flowers.
+ * Handles data retrieval and may update component state accordingly.
+ *
+ * @returns {Promise<Array>} A promise that resolves to an array of flower objects.
+ */
+function fetchFlowers() {
   fetch('http://localhost:8002/calendar/my-entries', {
+    method: 'GET',
     headers: {
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${jwTToken.value}`
     }
   })
@@ -388,27 +415,60 @@ function fetchFlowers() {
           moodRating: entry.moodRating,
         }));
 
-      // Populate the flowers array
+      // Populate the flowers array with filteredFloewrs
       flowers.splice(0, flowers.length, ...filteredFlowers);
       console.log('Fetched and populated flowers:', flowers);
     })
     .catch(error => {
       console.error('Error fetching flowers:', error);
+      showLoginPrompt.value = true; 
     })
 }
 
-onMounted(() => {
+/**
+ * Fetches label data, likely from an API or data source.
+ * This function is used to retrieve labels for use within the GardenView component.
+ * 
+ * @returns {Promise<Array>} A promise that resolves to an array of label objects.
+ */
+function fetchLabels() {
+  fetch('http://localhost:8002/labels', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${jwTToken.value}`, // Include JWT token for authentication
+    },
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch labels. Please check your authentication.');
+      }
+      return response.json();
+    })
+    .then((data: Label[]) => {
+      // Populate the labels array with data from the backend
+      const fetchedLabels = data.map((label) => {
+        // Assign a color to the label if not already assigned
+        if (!labelColors[label.name]) {
+          labelColors[label.name] = label.color || getRandomColor();
+        }
+        return label.name;
+      });
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const token = urlParams.get('token');
-  if (token) {
-    localStorage.setItem('jwt', token);
-    jwTToken.value = token;
-  }
-  // Fetch labels and flowers
-  fetchLabels();
-  fetchFlowers();
-});
+      // Ensure "Miscellaneous" is included only once
+      if (!fetchedLabels.includes('Miscellaneous')) {
+        fetchedLabels.unshift('Miscellaneous');
+      }
+
+      labels.splice(0, labels.length, ...fetchedLabels);
+
+      console.log('Fetched labels with colors:', labelColors.value);
+    })
+    .catch((error) => {
+      console.error('Error fetching labels:', error);
+      showLoginPrompt.value = true; 
+    });
+}
 
 /**
  * Filters tasks for a specific grid cell (category + stage combination)
@@ -472,7 +532,7 @@ function plantSeed() {
   const selectedLabel = newSeedLabel.value || 'Miscellaneous'
 
   // Create new task object
-   const newFlower = {
+  const newFlower = {
     title: newSeedTitle.value.trim(),
     stage: 'Planted', // All new tasks start as planted
     labels: [selectedLabel],
@@ -487,7 +547,7 @@ function plantSeed() {
     },
     body: JSON.stringify(newFlower),
   })
-  .then((response) => {
+    .then((response) => {
       if (!response.ok) {
         throw new Error('Failed to plant seed. Please try again.');
       }
@@ -546,6 +606,11 @@ function saveFlowerTitle() {
   }
 }
 
+/**
+ * Redirects the user to the edit page for a specific flower.
+ * 
+ * @param {string} flowerId - The unique identifier of the flower to edit.
+ */
 function redirectToEditPage(flowerId: string) {
   const calendiaryEditUrl = `http://localhost:8080/edit-event/${flowerId}`;
   window.location.href = calendiaryEditUrl;
@@ -595,49 +660,13 @@ function addNewLabel() {
     })
     .catch((error) => {
 
-        console.error('Error adding new label:', error);
-        alert('Failed to add new label. Please try again.');
-      
+      console.error('Error adding new label:', error);
+      alert('Failed to add new label. Please try again.');
+
     });
 }
 
-function fetchLabels() {
-  fetch('http://localhost:8002/labels', {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${jwTToken.value}`, // Include JWT token for authentication
-    },
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error('Failed to fetch labels. Please check your authentication.');
-      }
-      return response.json();
-    })
-    .then((data: Label[]) => {
-      // Populate the labels array with data from the backend
-      const fetchedLabels = data.map((label) => {
-        // Assign a color to the label if not already assigned
-        if (!labelColors.value[label.name]) {
-          labelColors.value[label.name] = label.color || getRandomColor();
-        }
-        return label.name;
-      });
 
-      // Ensure "Miscellaneous" is included only once
-      if (!fetchedLabels.includes('Miscellaneous')) {
-        fetchedLabels.unshift('Miscellaneous');
-      }
-
-      labels.splice(0, labels.length, ...fetchedLabels);
-
-      console.log('Fetched labels with colors:', labelColors.value);
-    })
-    .catch((error) => {
-      console.error('Error fetching labels:', error);
-    });
-}
 
 /**
  * "Sproutprise" feature - suggests a random planted task
@@ -674,7 +703,7 @@ function sproutpriseMe() {
  */
 function getSuggestionLabelColor(): string {
   if (!suggestionFlower.value) return 'rgba(255,255,255,0.8)'
-  return getLabelColor(suggestionFlower.value.label)
+  return getLabelColor(suggestionFlower.value.label || 'Miscellaneous');
 }
 
 function getRandomColor(): string {
@@ -690,10 +719,10 @@ function getRandomColor(): string {
  * @returns CSS color string with transparency
  */
 function getLabelColor(label: string): string {
-  if (!labelColors.value[label]) {
-    labelColors.value[label] = getRandomColor(); // Assign a random color if not already assigned
+  if (!labelColors[label]) {
+    labelColors[label] = getRandomColor(); // Assign a random color if not already assigned
   }
-  return labelColors.value[label];
+  return labelColors[label];
 }
 
 /**
@@ -703,7 +732,7 @@ function getLabelColor(label: string): string {
  * @returns '#000' for dark text or '#fff' for light text
  */
 function getTextColor(background: string): string {
-  const match = background.match(/\d+/g)
+  const match = background.match(/\d+/g) //extract all numeric values from the color string
   if (!match) return '#000'
 
   const [r, g, b] = match.map(Number)
@@ -727,6 +756,6 @@ function getFlowerImage(stage: string): string {
     Harvested: '/flowers/harvested.png',   // Completed successfully
     Composted: '/flowers/compost.png'      // Abandoned or archived
   }
-  return map[stage] || '/flowers/default.png' // Fallback image
+  return map[stage] || '/flowers/seedbed3.png' // Fallback image
 }
 </script>
